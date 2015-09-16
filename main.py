@@ -3,6 +3,9 @@ import asyncio
 import aiohttp
 import datetime
 
+CONCURRENT_REQUESTS = 15
+REQ_TIMEOUT = 3
+
 
 class FaviconSeeder:
     _url_list = []
@@ -19,36 +22,41 @@ class FaviconSeeder:
     def get_urls(self):
         return self._url_list
 
-logfile = open('codes.log', 'w')
+
 @asyncio.coroutine
-def coroutine(url):
+def get_status(url, semaphore):
     code = '000' 
-    furl = 'http://{}/'.format(url)
-    print('Starting {}'.format(furl))
-    try:
-        res = yield from asyncio.wait_for(aiohttp.request('GET', furl), 10)
-        code = res.status
-        yield from res.read_and_close()
-    except Exception as e:
-        logfile.write('URL: {1} Error: {0}\n'.format(e, url))
+    with (yield from semaphore):
+        try:
+            furl = 'http://{}/'.format(url)
+            res = yield from asyncio.wait_for(aiohttp.get(furl), REQ_TIMEOUT)
+            res.close()
+            code = res.status
+        except:
+            pass
 
-    print(code)
+    print(str(code) + ":" + url)
 
+
+def main():
+    sem = asyncio.Semaphore(CONCURRENT_REQUESTS)
+    f = FaviconSeeder()
+    f.load_from_csv('alexa.csv', 400)
+    urls =  f.get_urls()
+
+    coros = []
+    for url in urls:
+        coros.append(asyncio.async(get_status(url, sem)))
+    yield from asyncio.gather(*coros)
 
 
 if __name__ == '__main__':
-    f = FaviconSeeder()
-    f.load_from_csv('alexa.csv', 1000)
-    tasks = [coroutine(url) for url in f.get_urls()]
-
-    start = datetime.datetime.now()
+    start_time = datetime.datetime.now()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(asyncio.wait(tasks))
-    loop.stop()
-    loop.run_forever()
+    loop.run_until_complete(main())
+    loop._default_executor.shutdown(wait=True)
     loop.close()
-    stop = datetime.datetime.now()
-    time = stop-start
+    elapsed_time = datetime.datetime.now()-start_time
 
-    print('TIME: {}'.format(time))
-    print('EST: {}'.format(time * (200000/1000)))
+    print('TIME: {}'.format(elapsed_time))
+    print('EST: {}'.format(elapsed_time * (200000/400)))
