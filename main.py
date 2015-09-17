@@ -21,6 +21,9 @@ class AsyncRequestHandler:
             r = csv.reader(csvfile, delimiter=',')
             self._url_list = [row[1] for row in r][:limit]
 
+    def load_from_list(self, url_list):
+        self._url_list = url_list
+
     def get_urls(self):
         return self._url_list
 
