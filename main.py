@@ -2,6 +2,7 @@ import csv
 import asyncio
 import aiohttp
 import datetime
+import concurrent
 
 
 class AsyncRequestHandler:
@@ -9,10 +10,11 @@ class AsyncRequestHandler:
     def __init__(self):
         self._url_list = []
         self._results = []
-        self._concurrent_requests = 15
-        self._req_timeout = 10
+        self._concurrent_requests = 50
+        self._req_timeout = 4
         self._num_retries = 3
         self._subdomains = ['www']
+        self._connector = aiohttp.TCPConnector(verify_ssl=False)
 
     def load_from_csv(self, csvfile, limit):
         with open(csvfile) as csvfile:
@@ -34,12 +36,14 @@ class AsyncRequestHandler:
         code = '000'
         subs = ['']
         [subs.append('{}.'.format(sub)) for sub in self._subdomains]
+        con = self._connector
+        timeout = self._req_timeout
 
         with (yield from semaphore):
             for sub in subs:
                 try:
                     furl = 'http://{}{}/'.format(sub, url)
-                    res = yield from asyncio.wait_for(aiohttp.get(furl), self._req_timeout)
+                    res = yield from asyncio.wait_for(aiohttp.get(furl, connector=con), timeout)
                     res.close()
                     code = res.status
                     break
@@ -68,7 +72,6 @@ class AsyncRequestHandler:
 
     def run(self):
         sem = asyncio.Semaphore(self._concurrent_requests)
-
         loop = asyncio.get_event_loop()
 
         coros = []
@@ -76,10 +79,14 @@ class AsyncRequestHandler:
             coros.append(asyncio.async(self._get_status(url, sem)))
 
         start_time = datetime.datetime.now()
+
+        executor = concurrent.futures.ThreadPoolExecutor(10)
+        loop.set_default_executor(executor)
         loop.run_until_complete(asyncio.wait(coros))
-        loop._default_executor.shutdown(wait=True)
+        executor.shutdown(wait=True)
         time_elapsed = datetime.datetime.now() - start_time
         est_time = time_elapsed * 200000 / len(coros)
+        self._connector.close()
         loop.close()
 
         # Print results
@@ -90,5 +97,5 @@ class AsyncRequestHandler:
 
 if __name__ == '__main__':
     handler = AsyncRequestHandler()
-    handler.load_from_csv('alexa.csv', 5000)
+    handler.load_from_csv('alexa.csv', 400)
     handler.run()
