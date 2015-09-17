@@ -2,16 +2,17 @@ import csv
 import asyncio
 import aiohttp
 import datetime
-import sys
 
 
 class AsyncRequestHandler:
-    _url_list = []
-    _results = []
 
     def __init__(self):
-        self._concurrent_requests = 18
+        self._url_list = []
+        self._results = []
+        self._concurrent_requests = 15
         self._req_timeout = 10
+        self._num_retries = 3
+        self._subdomains = ['www']
 
     def load_from_csv(self, csvfile, limit):
         with open(csvfile) as csvfile:
@@ -21,18 +22,29 @@ class AsyncRequestHandler:
     def get_urls(self):
         return self._url_list
 
+    def add_subdomain(self, subdomain):
+        # Check that the sub domain does not exist
+        if subdomain not in self._subdomains:
+            self._subdomains.append(subdomain)
+        else:
+            print('Subdomain already loaded.')
+
     @asyncio.coroutine
     def _get_status(self, url, semaphore):
         code = '000'
-        with (yield from semaphore):
-            try:
-                furl = 'http://{}/'.format(url)
-                res = yield from asyncio.wait_for(aiohttp.get(furl), self._req_timeout)
-                res.close()
-                code = res.status
+        subs = ['']
+        [subs.append('{}.'.format(sub)) for sub in self._subdomains]
 
-            except:
-                pass
+        with (yield from semaphore):
+            for sub in subs:
+                try:
+                    furl = 'http://{}{}/'.format(sub, url)
+                    res = yield from asyncio.wait_for(aiohttp.get(furl), self._req_timeout)
+                    res.close()
+                    code = res.status
+                    break
+                except:
+                    pass
         self._results.append(code)
         print(str(code) + ":" + url)
 
