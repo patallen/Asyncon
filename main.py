@@ -3,6 +3,7 @@ import asyncio
 import aiohttp
 import datetime
 import concurrent
+import math
 
 
 class AsyncRequestHandler:
@@ -53,7 +54,12 @@ class AsyncRequestHandler:
                 except:
                     pass
         self._results.append(code)
-        print(str(code) + ":" + url)
+        self.update_status()
+
+    def update_status(self):
+        total = len(self._url_list)
+        completed = len(self._results)
+        print('{}%'.format(math.ceil(completed/total*100)))
 
     def get_results(self):
         status_ok = 0
