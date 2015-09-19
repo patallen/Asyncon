@@ -4,6 +4,11 @@ import aiohttp
 import datetime
 import concurrent
 import math
+# # Uncomment to turn debugging on
+# import os
+# import logging
+# os.environ['PYTHONASYNCIODEBUG'] = '1'
+# logging.basicConfig(level=logging.DEBUG)
 
 
 class AsyncRequestHandler:
@@ -47,7 +52,8 @@ class AsyncRequestHandler:
             for sub in subs:
                 try:
                     furl = 'http://{}{}/'.format(sub, url)
-                    res = yield from asyncio.wait_for(aiohttp.get(furl, connector=con), timeout)
+                    res = yield from asyncio.wait_for(
+                            aiohttp.get(furl, connector=con), timeout)
                     res.close()
                     code = res.status
                     break
@@ -76,8 +82,8 @@ class AsyncRequestHandler:
             else:
                 status_other += 1
         print('Total: {}'.format(total))
-        print('200 : {0} : {1}'.format(status_ok, (status_ok / total * 100)))
-        print('000 : {0} : {1}'.format(status_none, (status_none / total * 100)))
+        print('200 : {} : {}'.format(status_ok, (status_ok / total * 100)))
+        print('000 : {} : {}'.format(status_none, (status_none / total * 100)))
 
     def run(self):
         sem = asyncio.Semaphore(self._concurrent_requests)
