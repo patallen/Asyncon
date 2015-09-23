@@ -24,9 +24,14 @@ class TestAsyncRequestHandler(unittest.TestCase):
         self.hdl.add_subdomain('blog')
         self.assertIn('blog', self.hdl._subdomains)
 
+    def test_add_existing_subdomain(self):
+        self.hdl.add_subdomain('www')
+        self.assertEqual(len(self.hdl._subdomains), 1)
+
     def test_get_status(self):
         code = yield from self.hdl._get_status('http://google.com/')
         self.assertEqual(code, 200)
+
 
 if __name__ == '__main__':
     unittest.main()

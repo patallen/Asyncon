@@ -38,8 +38,10 @@ class AsyncRequestHandler:
         # Check that the sub domain does not exist
         if subdomain not in self._subdomains:
             self._subdomains.append(subdomain)
+            return True
         else:
             print('Subdomain already loaded.')
+            return False
 
     @asyncio.coroutine
     def _get_status(self, url):
