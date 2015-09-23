@@ -4,19 +4,29 @@ import collections
 
 
 class TestAsyncRequestHandler(unittest.TestCase):
+
     def setUp(self):
+        self.hdl = AsyncRequestHandler()
         self._url_list = ['google.com', 'yahoo.com', 'abc.com']
 
     def test_load_from_list_loads_list(self):
-        hdl = AsyncRequestHandler()
-        hdl.load_from_list(self._url_list)
-        self.assertTrue(collections.Counter(self._url_list) == collections.Counter(hdl._url_list))
+        self.hdl.load_from_list(self._url_list)
+        self.assertEqual(collections.Counter(self._url_list),
+                         collections.Counter(self.hdl._url_list))
 
     def test_load_from_csv(self):
-        hdl = AsyncRequestHandler()
+        test_list = ['google.com', 'facebook.com', 'youtube.com']
         csv_file = 'alexa.csv'
-        hdl.load_from_csv(csv_file, 3)
-        self.assertTrue(len(hdl._url_list) == 3)
+        self.hdl.load_from_csv(csv_file, 3)
+        self.assertEqual(self.hdl.get_urls(), test_list)
+
+    def test_add_subdomain(self):
+        self.hdl.add_subdomain('blog')
+        self.assertIn('blog', self.hdl._subdomains)
+
+    def test_get_status(self):
+        code = yield from self.hdl._get_status('http://google.com/')
+        self.assertEqual(code, 200)
 
 if __name__ == '__main__':
     unittest.main()
