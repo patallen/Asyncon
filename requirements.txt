@@ -1,0 +1,4 @@
+aiohttp==0.17.3
+chardet==2.3.0
+coverage==4.0
+wheel==0.24.0
