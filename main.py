@@ -21,6 +21,7 @@ class AsyncRequestHandler:
         self._num_retries = 3
         self._subdomains = ['www']
         self._connector = aiohttp.TCPConnector(verify_ssl=False)
+        self._semaphore = asyncio.Semaphore(self._concurrent_requests)
 
     def load_from_csv(self, csvfile, limit):
         with open(csvfile) as csvfile:
@@ -41,14 +42,14 @@ class AsyncRequestHandler:
             print('Subdomain already loaded.')
 
     @asyncio.coroutine
-    def _get_status(self, url, semaphore):
+    def _get_status(self, url):
         code = '000'
         subs = ['']
         [subs.append('{}.'.format(sub)) for sub in self._subdomains]
         con = self._connector
         timeout = self._req_timeout
 
-        with (yield from semaphore):
+        with (yield from self._semaphore):
             for sub in subs:
                 try:
                     furl = 'http://{}{}/'.format(sub, url)
@@ -61,6 +62,7 @@ class AsyncRequestHandler:
                     pass
         self._results.append(code)
         self.update_status()
+        return code
 
     def update_status(self):
         total = len(self._url_list)
@@ -86,12 +88,11 @@ class AsyncRequestHandler:
         print('000 : {} : {}'.format(status_none, (status_none / total * 100)))
 
     def run(self):
-        sem = asyncio.Semaphore(self._concurrent_requests)
         loop = asyncio.get_event_loop()
 
         coros = []
         for url in self._url_list:
-            coros.append(asyncio.async(self._get_status(url, sem)))
+            coros.append(asyncio.async(self._get_status(url)))
 
         start_time = datetime.datetime.now()
 
