@@ -1,5 +1,5 @@
 import unittest
-from main import AsyncRequestHandler
+from asyncon.handlers import AsyncRequestHandler
 import collections
 
 
@@ -31,6 +31,11 @@ class TestAsyncRequestHandler(unittest.TestCase):
     def test_get_status(self):
         code = yield from self.hdl._get_status('http://google.com/')
         self.assertEqual(code, 200)
+
+    def test_get_results(self):
+        self.hdl.load_from_list(self._url_list)
+        self.hdl.run()
+        self.assertEqual(self.hdl.get_results()['total'], len(self._url_list))
 
 
 if __name__ == '__main__':
