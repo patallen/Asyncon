@@ -72,6 +72,7 @@ class AsyncRequestHandler:
         print('{}%'.format(math.ceil(completed/total*100)))
 
     def get_results(self):
+        totals_dict = {}
         status_ok = 0
         total = 0
         status_none = 0
@@ -85,9 +86,13 @@ class AsyncRequestHandler:
                 status_ok += 1
             else:
                 status_other += 1
+        totals_dict['total'] = total
+        totals_dict['ok'] = status_ok
+        totals_dict['other'] = status_none
         print('Total: {}'.format(total))
         print('200 : {} : {}'.format(status_ok, (status_ok / total * 100)))
         print('000 : {} : {}'.format(status_none, (status_none / total * 100)))
+        return totals_dict
 
     def run(self):
         loop = asyncio.get_event_loop()
@@ -110,4 +115,3 @@ class AsyncRequestHandler:
         # Print results
         print('Elapsed: {}'.format(time_elapsed))
         print('Estimated: {}'.format(est_time))
-        self.get_results()
