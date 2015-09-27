@@ -89,6 +89,11 @@ class AsyncRequestHandler:
         totals_dict['total'] = total
         totals_dict['ok'] = status_ok
         totals_dict['other'] = status_none
+        # Print results
+        time_elapsed = self.complete_time - self.start_time
+        est_time = time_elapsed * 200000 / len(self._url_list)
+        print('Elapsed: {}'.format(time_elapsed))
+        print('Estimated: {}'.format(est_time))
         print('Total: {}'.format(total))
         print('200 : {} : {}'.format(status_ok, (status_ok / total * 100)))
         print('000 : {} : {}'.format(status_none, (status_none / total * 100)))
@@ -101,17 +106,12 @@ class AsyncRequestHandler:
         for url in self._url_list:
             coros.append(asyncio.async(self._get_status(url)))
 
-        start_time = datetime.datetime.now()
-
+        self.start_time = datetime.datetime.now()
         executor = concurrent.futures.ThreadPoolExecutor(10)
         loop.set_default_executor(executor)
         loop.run_until_complete(asyncio.wait(coros))
         executor.shutdown(wait=True)
-        time_elapsed = datetime.datetime.now() - start_time
-        est_time = time_elapsed * 200000 / len(coros)
+        self.complete_time = datetime.datetime.now()
         self._connector.close()
         loop.close()
 
-        # Print results
-        print('Elapsed: {}'.format(time_elapsed))
-        print('Estimated: {}'.format(est_time))
